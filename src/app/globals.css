@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+/*
+ * Cores dos gráficos do painel, por PAPEL (não por valor solto), para o modo escuro ser uma troca num
+ * lugar só quando o app tiver tema escuro. Hoje o app é só claro, então só há os valores claros.
+ * A cor da série (verde de destaque do app) foi validada contra o fundo branco do cartão: banda de
+ * luminosidade, croma e contraste de 3,77:1 (mínimo 3:1 para marcas).
+ */
+.viz-root {
+  --viz-series-1: #059669;
+  --viz-series-1-hover: #047857;
+  --viz-grid: #e2e8f0;
+  --viz-axis: #cbd5e1;
+}
+
+/*
+ * Telas estreitas (< 640px, o breakpoint "sm" do Tailwind).
+ *
+ * 1) Tabelas viram cartões empilhados: cada linha é um cartão em 2 colunas, com o rótulo de cada campo
+ *    acima do valor (vem de `data-label`, sem duplicar texto no HTML). O cabeçalho continua na página,
+ *    só escondido para quem enxerga (leitores de tela ainda o leem). Como mudar o `display` pode fazer o
+ *    navegador perder a semântica de tabela, as tabelas que usam isto declaram os `role` explicitamente.
+ *    Células: `.stack-wide` ocupa a linha toda; `.stack-actions` é a faixa de ações (Editar, Excluir...).
+ * 2) Formulários de busca/filtro ocupam a largura toda (campos empilhados, fáceis de tocar).
+ * No desktop nada disto se aplica.
+ */
+@media (max-width: 639.98px) {
+  .stack-table,
+  .stack-table > tbody,
+  .stack-table > tfoot {
+    display: block;
+  }
+  .stack-table {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  .stack-table > thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .stack-table > tbody > tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem 1rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    background: #fff;
+  }
+  .stack-table > tbody > tr > td {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    padding: 0;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+  .stack-table > tbody > tr > td::before {
+    content: attr(data-label);
+    margin-bottom: 0.125rem;
+    font-family: var(--default-font-family, ui-sans-serif, system-ui, sans-serif);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: #64748b;
+  }
+  .stack-table > tbody > tr > td:not([data-label])::before,
+  .stack-table > tbody > tr > td[data-label=""]::before {
+    content: none;
+  }
+  .stack-table > tbody > tr > td:empty {
+    display: none;
+  }
+  .stack-table > tbody > tr > .stack-wide {
+    grid-column: 1 / -1;
+  }
+  .stack-table > tbody > tr > .stack-empty {
+    grid-column: 1 / -1;
+    align-items: center;
+    text-align: center;
+  }
+  .stack-table > tbody > tr > .stack-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 1.25rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f1f5f9;
+  }
+  .stack-table > tbody > tr > .stack-actions::before {
+    content: none;
+  }
+  .stack-table > tfoot > tr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    background: #f8fafc;
+  }
+  .stack-table > tfoot > tr > th,
+  .stack-table > tfoot > tr > td {
+    display: block;
+    padding: 0;
+    text-align: left;
+  }
+  .stack-table > tfoot > tr > td:empty {
+    display: none;
+  }
+
+  form[role="search"] > div {
+    flex: 1 1 100%;
+  }
+  form[role="search"] :is(input, select) {
+    width: 100%;
+  }
+}
