@@ -22,6 +22,7 @@ function parseProductForm(formData: FormData) {
     reference: getString(formData, "reference"),
     description: getString(formData, "description"),
     price: getString(formData, "price"),
+    imageUrl: getString(formData, "imageUrl"),
     categoryId: getString(formData, "categoryId"),
     active: getString(formData, "active"),
   };

@@ -7,10 +7,10 @@ const router = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 const catalog: OrderableProduct[] = [
-  { id: "p1", reference: "CAM-01", description: "Camiseta azul", priceCents: 1990, categoryName: "Roupas" },
-  { id: "p2", reference: "SUC-01", description: "Suco de uva", priceCents: 735, categoryName: "Bebidas" },
-  { id: "p3", reference: "CAF-01", description: "Café especial", priceCents: 2500, categoryName: null },
-  { id: "p4", reference: "OUR-01", description: "Peça de ouro", priceCents: 100_000_000, categoryName: null },
+  { id: "p1", reference: "CAM-01", description: "Camiseta azul", priceCents: 1990, imageUrl: null, categoryName: "Roupas" },
+  { id: "p2", reference: "SUC-01", description: "Suco de uva", priceCents: 735, imageUrl: null, categoryName: "Bebidas" },
+  { id: "p3", reference: "CAF-01", description: "Café especial", priceCents: 2500, imageUrl: null, categoryName: null },
+  { id: "p4", reference: "OUR-01", description: "Peça de ouro", priceCents: 100_000_000, imageUrl: null, categoryName: null },
 ];
 
 const DEBOUNCE = 600;
@@ -59,6 +59,41 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
+});
+
+describe("imagem do produto", () => {
+  const DIRECT = "https://lh3.googleusercontent.com/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345";
+  const withImage = catalog.map((product) => (product.id === "p1" ? { ...product, imageUrl: DIRECT } : product));
+
+  it("mostra a miniatura na sugestão da busca e na linha do pedido, só para quem tem imagem", () => {
+    setup({ catalog: withImage });
+    typeSearch("-01"); // CAM-01 (com imagem) e SUC-01 (sem)
+    const options = screen.getAllByRole("option");
+    const camisa = options.find((o) => o.textContent?.includes("CAM-01"))!;
+    const suco = options.find((o) => o.textContent?.includes("SUC-01"))!;
+    expect(within(camisa).getByRole("presentation")).toHaveAttribute("src", `${DIRECT}=w40`);
+    expect(within(suco).queryByTestId("product-image")).not.toBeInTheDocument();
+
+    pick("CAM-01");
+    expect(within(row("CAM-01")).getByRole("presentation")).toHaveAttribute("src", `${DIRECT}=w48`);
+
+    typeSearch("SUC");
+    pick("SUC-01");
+    expect(within(row("SUC-01")).queryByTestId("product-image")).not.toBeInTheDocument();
+  });
+
+  it("imagem que não carrega some da linha: o pedido segue utilizável, sem ícone quebrado", () => {
+    setup({ catalog: withImage });
+    typeSearch("CAM");
+    pick("CAM-01");
+    const thumb = within(row("CAM-01")).getByRole("presentation");
+    fireEvent.error(thumb); // miniatura recusada → tenta o endereço puro
+    fireEvent.error(within(row("CAM-01")).getByRole("presentation"));
+
+    expect(within(row("CAM-01")).queryByTestId("product-image")).not.toBeInTheDocument();
+    expect(within(row("CAM-01")).queryByTestId("product-image-fallback")).not.toBeInTheDocument();
+    expect(qty("CAM-01")).toHaveValue("1");
+  });
 });
 
 describe("estrutura da tabela", () => {

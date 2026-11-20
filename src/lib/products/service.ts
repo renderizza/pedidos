@@ -82,6 +82,7 @@ export async function listProducts(params: ProductListParams = {}): Promise<Prod
       reference: products.reference,
       description: products.description,
       priceCents: products.priceCents,
+      imageUrl: products.imageUrl,
       categoryId: products.categoryId,
       active: products.active,
       createdAt: products.createdAt,
@@ -147,6 +148,7 @@ export type OrderableProduct = {
   reference: string;
   description: string;
   priceCents: number;
+  imageUrl: string | null;
   categoryName: string | null;
 };
 
@@ -158,6 +160,7 @@ export async function listOrderableProducts(): Promise<OrderableProduct[]> {
       reference: products.reference,
       description: products.description,
       priceCents: products.priceCents,
+      imageUrl: products.imageUrl,
       categoryName: categories.name,
     })
     .from(products)

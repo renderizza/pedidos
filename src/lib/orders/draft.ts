@@ -28,6 +28,7 @@ export type DraftLine = {
   reference: string;
   description: string;
   priceCents: number;
+  imageUrl: string | null;
   categoryName: string | null;
   quantity: number;
 };
@@ -47,6 +48,7 @@ export async function getDraft(userId: string): Promise<DraftView> {
       reference: products.reference,
       description: products.description,
       priceCents: products.priceCents,
+      imageUrl: products.imageUrl,
       active: products.active,
       categoryName: categories.name,
       quantity: orderDraftItems.quantity,

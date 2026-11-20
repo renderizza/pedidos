@@ -1,0 +1,2 @@
+ALTER TABLE "products" ADD COLUMN "image_url" varchar(2048);--> statement-breakpoint
+ALTER TABLE "products" ADD CONSTRAINT "products_image_url_https" CHECK ("products"."image_url" is null or "products"."image_url" like 'https://%');

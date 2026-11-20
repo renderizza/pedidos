@@ -284,6 +284,68 @@ describe("produtos (ADMIN)", () => {
     expect(missing?.error).toBe("Produto não encontrado");
   });
 
+  describe("imagem do produto (URL do Google Drive)", () => {
+    const FILE_ID = "1AbCdEfGhIjKlMnOpQrStUvWxYz012345";
+    const DIRECT = `https://lh3.googleusercontent.com/d/${FILE_ID}`;
+    const SHARE_LINK = `https://drive.google.com/file/d/${FILE_ID}/view?usp=sharing`;
+
+    it("criar: converte o link de compartilhamento do Drive no endereço direto da imagem", async () => {
+      await expect(
+        createProductAction(undefined, productForm({ imageUrl: SHARE_LINK })),
+      ).rejects.toMatchObject({ url: "/admin/produtos?status=created" });
+      expect((await listProducts()).items[0].imageUrl).toBe(DIRECT);
+    });
+
+    it("criar sem imagem (campo vazio ou ausente) é permitido e grava nulo", async () => {
+      await expect(createProductAction(undefined, productForm({ imageUrl: "" }))).rejects.toBeInstanceOf(RedirectError);
+      await expect(createProductAction(undefined, productForm({ reference: "SEM-CAMPO" }))).rejects.toBeInstanceOf(RedirectError);
+      expect((await listProducts()).items.map((p) => p.imageUrl)).toEqual([null, null]);
+    });
+
+    it.each([
+      ["http (conteúdo misto)", "http://exemplo.com/a.jpg", "https://"],
+      ["script", "javascript:alert(1)", "https://"],
+      ["texto que não é endereço", "foto da camiseta", "inválido"],
+      ["pasta do Drive", "https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz", "pasta"],
+      ["documento do Google", `https://docs.google.com/document/d/${FILE_ID}/edit`, "Drive"],
+    ])("criar com %s: erro no campo da imagem, mantém o digitado e não grava", async (_label, imageUrl, fragment) => {
+      const state = await createProductAction(undefined, productForm({ imageUrl }));
+      expect(state?.fieldErrors?.imageUrl?.[0]).toContain(fragment);
+      expect(Object.keys(state?.fieldErrors ?? {})).toEqual(["imageUrl"]); // só a imagem está errada
+      expect(state?.values?.imageUrl).toBe(imageUrl);
+      expect((await listProducts()).total).toBe(0);
+      expect(revalidatedPaths).toEqual([]);
+    });
+
+    it("editar: troca a imagem e, com o campo vazio, remove", async () => {
+      const product = await insertProduct({ reference: "A1", imageUrl: DIRECT });
+
+      await expect(
+        updateProductAction(product.id, undefined, productForm({ reference: "a1", imageUrl: `https://drive.google.com/open?id=2ZyXwVuTsRqPoNmLkJiHgFeDcBa987654` })),
+      ).rejects.toMatchObject({ url: "/admin/produtos?status=updated" });
+      expect((await getProduct(product.id))?.imageUrl).toBe("https://lh3.googleusercontent.com/d/2ZyXwVuTsRqPoNmLkJiHgFeDcBa987654");
+
+      await expect(
+        updateProductAction(product.id, undefined, productForm({ reference: "a1", imageUrl: "" })),
+      ).rejects.toBeInstanceOf(RedirectError);
+      expect((await getProduct(product.id))?.imageUrl).toBeNull();
+    });
+
+    it("editar com imagem inválida não altera o produto", async () => {
+      const product = await insertProduct({ reference: "A1", imageUrl: DIRECT });
+      const state = await updateProductAction(product.id, undefined, productForm({ reference: "a1", imageUrl: "http://x.com/a.jpg" }));
+      expect(state?.fieldErrors?.imageUrl?.[0]).toContain("https://");
+      expect((await getProduct(product.id))?.imageUrl).toBe(DIRECT);
+    });
+
+    it("a imagem só pode ser cadastrada por ADMIN (a permissão é conferida antes de qualquer validação)", async () => {
+      cookieJar.clear();
+      await loginAs("CONSULTOR");
+      await expect(createProductAction(undefined, productForm({ imageUrl: SHARE_LINK }))).rejects.toBeInstanceOf(ForbiddenError);
+      expect((await listProducts()).total).toBe(0);
+    });
+  });
+
   it("excluir: remove o produto e revalida a lista", async () => {
     const product = await insertProduct({ reference: "DEL" });
     expect(await deleteProductAction(product.id, undefined)).toBeUndefined();

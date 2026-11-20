@@ -115,6 +115,17 @@ describe("saveDraft / getDraft (persistência do rascunho)", () => {
     expect((await getDraft(userId)).lines[0].priceCents).toBe(2500);
   });
 
+  it("traz a imagem atual do produto em cada linha (nula quando não tem)", async () => {
+    const direct = "https://lh3.googleusercontent.com/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345";
+    const a = await insertProduct({ reference: "A", imageUrl: direct });
+    const b = await insertProduct({ reference: "B" });
+    await saveDraft(userId, [
+      { productId: a.id, quantity: 1 },
+      { productId: b.id, quantity: 1 },
+    ]);
+    expect((await getDraft(userId)).lines.map((line) => line.imageUrl)).toEqual([direct, null]);
+  });
+
   it("não cria pedido: rascunho não é histórico", async () => {
     const a = await insertProduct({ reference: "A" });
     await saveDraft(userId, [{ productId: a.id, quantity: 1 }]);
@@ -346,5 +357,14 @@ describe("listOrderableProducts", () => {
     expect(list.map((p) => p.reference)).toEqual(["A-01", "B-02"]);
     expect(list[1]).toMatchObject({ description: "Suco", priceCents: 735, categoryName: "Bebidas" });
     expect(list[0].categoryName).toBeNull();
+  });
+
+  it("traz o endereço da imagem (nulo quando o produto não tem), para a tabela de pedido mostrar a miniatura", async () => {
+    const direct = "https://lh3.googleusercontent.com/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345";
+    await insertProduct({ reference: "A-01", imageUrl: direct });
+    await insertProduct({ reference: "B-02" });
+
+    const list = await listOrderableProducts();
+    expect(list.map((p) => p.imageUrl)).toEqual([direct, null]);
   });
 });

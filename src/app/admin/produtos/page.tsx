@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ProductImage } from "@/components/catalog/product-image";
 import { DeleteButton } from "@/components/delete-button";
 import { FlashMessage } from "@/components/flash-message";
 import { Pagination } from "@/components/pagination";
@@ -103,7 +104,13 @@ export default async function ProductsPage({
               {result.items.map((product) => (
                 <tr role="row" key={product.id} className="border-t border-slate-100 align-top">
                   <td role="cell" data-label="Referência" className="stack-wide px-4 py-2 font-mono">{product.reference}</td>
-                  <td role="cell" data-label="Descrição" className="stack-wide px-4 py-2">{product.description}</td>
+                  <td role="cell" data-label="Descrição" className="stack-wide px-4 py-2">
+                    <div className="flex items-start gap-3">
+                      {/* Aqui o fallback fica visível: se o link do Drive não carregar, quem cadastra percebe. */}
+                      <ProductImage url={product.imageUrl} width={48} className="h-12 w-12 shrink-0 rounded" />
+                      <span>{product.description}</span>
+                    </div>
+                  </td>
                   <td role="cell" data-label="Categoria" className="px-4 py-2">{product.categoryName ?? "—"}</td>
                   <td role="cell" data-label="Preço" className="px-4 py-2 text-right tabular-nums">{formatCents(product.priceCents)}</td>
                   <td role="cell" data-label="Situação" className="px-4 py-2">{product.active ? "Ativo" : "Inativo"}</td>

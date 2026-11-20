@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { ProductImage } from "@/components/catalog/product-image";
 import { WhatsAppSharePanel } from "@/components/orders/whatsapp-share-panel";
 import { formatCents } from "@/lib/money";
 import { calculateOrder, parseQuantity } from "@/lib/orders/calculation";
@@ -390,8 +391,13 @@ export function OrderBuilder({
                   }}
                   className={`cursor-pointer px-3 py-2 text-sm ${index === activeIndex ? "bg-emerald-50" : ""}`}
                 >
-                  <span className="font-mono font-medium">{product.reference}</span> — {product.description}{" "}
-                  <span className="text-slate-500">({formatCents(product.priceCents)})</span>
+                  <div className="flex items-center gap-3">
+                    <ProductImage url={product.imageUrl} width={40} onFailure="hidden" className="h-10 w-10 shrink-0 rounded" />
+                    <span>
+                      <span className="font-mono font-medium">{product.reference}</span> — {product.description}{" "}
+                      <span className="text-slate-500">({formatCents(product.priceCents)})</span>
+                    </span>
+                  </div>
                 </li>
               ))
             )}
@@ -426,7 +432,12 @@ export function OrderBuilder({
               return (
                 <tr role="row" key={product.id} className="border-t border-slate-100 align-top">
                   <td role="cell" data-label="Referência" className="stack-wide px-4 py-2 font-mono">{product.reference}</td>
-                  <td role="cell" data-label="Descrição do Produto" className="stack-wide px-4 py-2">{product.description}</td>
+                  <td role="cell" data-label="Descrição do Produto" className="stack-wide px-4 py-2">
+                    <div className="flex items-start gap-3">
+                      <ProductImage url={product.imageUrl} width={48} onFailure="hidden" className="h-12 w-12 shrink-0 rounded" />
+                      <span>{product.description}</span>
+                    </div>
+                  </td>
                   <td role="cell" data-label="Valor Unitário" className="px-4 py-2 text-right tabular-nums">{formatCents(product.priceCents)}</td>
                   <td role="cell" data-label="Quantidade" className="px-4 py-2">
                     <input

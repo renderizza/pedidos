@@ -25,6 +25,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
           reference: product.reference,
           description: product.description,
           price: centsToInputValue(product.priceCents),
+          imageUrl: product.imageUrl ?? "",
           categoryId: product.categoryId ?? "",
           active: product.active,
         }}

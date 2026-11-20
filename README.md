@@ -78,9 +78,31 @@ O cliente final **não precisa de conta** para pedir: ele monta o pedido na vitr
 | `/admin/categorias` | Lista, cria, edita e exclui categorias |
 | `/admin/produtos` | Lista com busca (referência/descrição), filtro por categoria e situação, e paginação; cria, edita e exclui produtos |
 
-- Todo produto exige **Referência** (única, gravada em maiúsculas), **Descrição** e **Preço** (digitado como `12,50` ou `1.234,56`, gravado em centavos).
+- Todo produto exige **Referência** (única, gravada em maiúsculas), **Descrição** e **Preço** (digitado como `12,50` ou `1.234,56`, gravado em centavos). A **URL da imagem** é opcional (veja "Imagens dos produtos").
 - Categoria com produtos não pode ser excluída (a tela explica o motivo). Excluir um produto preserva o histórico dos pedidos antigos (os itens guardam referência, descrição e preço).
 - Cada Server Action confere a permissão antes de qualquer outra coisa e valida a entrada com Zod; páginas e ações usam `requirePermission(...)`.
+
+## Imagens dos produtos (Google Drive)
+
+O formulário de produto (`/admin/produtos/novo` e `/editar`) tem o campo **URL da imagem** (opcional). A imagem aparece na vitrine, na lista de produtos do admin e na tabela de montagem do pedido (sugestões da busca e linha do item).
+
+**Como cadastrar uma imagem do Drive**
+
+1. No Drive, clique com o botão direito no arquivo → **Compartilhar** → em "Acesso geral", escolha **Qualquer pessoa com o link**.
+2. **Copiar link** e cole no campo. Ao sair do campo aparece uma **prévia**: se vier só um quadro cinza, o arquivo não está compartilhado como público.
+
+**Por que o link do Drive é convertido.** O link de compartilhamento (`drive.google.com/file/d/ID/view`) é uma *página* HTML, não a imagem: num `<img>` não aparece nada. Ao salvar, qualquer formato de link do Drive (`/file/d/ID/view`, `open?id=`, `uc?id=`, `thumbnail?id=`, `drive.usercontent.google.com/download?id=`) vira `https://lh3.googleusercontent.com/d/ID`, que é o endereço estável da imagem. Pastas e documentos do Google são recusados com uma mensagem explicando o motivo. A lógica está em `src/lib/images/image-url.ts` (módulo puro, com testes).
+
+**O que a renderização faz** (`src/components/catalog/product-image.tsx`):
+
+- pede **miniaturas** ao Google (`=w400`, e o dobro para telas 2x) em vez da foto original, que pode ter vários MB;
+- `referrerPolicy="no-referrer"` e `loading="lazy"`; a caixa tem **proporção fixa**, então a lista não "pula" quando as imagens chegam;
+- se a miniatura falhar, **tenta o endereço puro**; se tudo falhar (arquivo não público, apagado, cota do Drive), mostra um **espaço reservado** cinza (ou some, nas miniaturas pequenas do pedido) em vez do ícone de imagem quebrada;
+- é um `<img>` comum, não o `next/image`: o Google já entrega a imagem redimensionada, então o otimizador do Next só acrescentaria uma viagem do servidor ao Google. Por isso **não há `remotePatterns`** a configurar.
+
+**Regras.** Só `https` é aceito (`http` seria bloqueado como conteúdo misto); também há uma `check` no banco (`products_image_url_https`). Endereços de outros sites (https) funcionam como estão. Campo vazio = produto sem imagem (o cartão da vitrine não reserva espaço). Os itens de pedido **não** guardam imagem: o histórico mantém só referência, descrição e preço.
+
+**Limites conhecidos.** O Drive pode recusar a imagem quando um arquivo recebe muitos acessos em pouco tempo (cota do Google); nesse caso aparece o espaço reservado e a imagem volta sozinha depois. Para uma loja com muito tráfego, hospedar as imagens num serviço próprio (ou CDN) é mais robusto que o Drive. Arquivos antigos que exigem `resourcekey` no link podem não carregar.
 
 ## Faturamento no painel
 

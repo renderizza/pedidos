@@ -18,6 +18,20 @@ describe("ProductCard", () => {
     expect(screen.queryByText("Roupas")).not.toBeInTheDocument();
   });
 
+  it("mostra a imagem quando o produto tem endereço de imagem", () => {
+    const imageUrl = "https://lh3.googleusercontent.com/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345";
+    render(<ul><ProductCard product={{ ...product, imageUrl }} /></ul>);
+    expect(screen.getByTestId("product-image")).toBeInTheDocument();
+    // Decorativa: o título já descreve o produto, então o leitor de tela não repete o texto.
+    expect(screen.getByRole("presentation")).toHaveAttribute("src", `${imageUrl}=w400`);
+  });
+
+  it.each([undefined, null, ""])("sem imagem (%j): o cartão não reserva espaço de imagem", (imageUrl) => {
+    render(<ul><ProductCard product={{ ...product, imageUrl }} /></ul>);
+    expect(screen.queryByTestId("product-image")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("product-image-fallback")).not.toBeInTheDocument();
+  });
+
   it("renderiza a ação recebida (ou nenhuma, para visitantes)", () => {
     const { rerender } = render(<ul><ProductCard product={product} action={<button>Pedir</button>} /></ul>);
     expect(screen.getByRole("button", { name: "Pedir" })).toBeInTheDocument();

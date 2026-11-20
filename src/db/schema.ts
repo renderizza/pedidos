@@ -85,6 +85,11 @@ export const products = pgTable(
     description: varchar("description", { length: 500 }).notNull(),
     /** Preço unitário em centavos (inteiro, para evitar erros de ponto flutuante). */
     priceCents: integer("price_cents").notNull(),
+    /**
+     * Endereço da imagem (opcional). Links do Google Drive são gravados já convertidos para o endereço
+     * direto `https://lh3.googleusercontent.com/d/ID` (veja `src/lib/images/image-url.ts`).
+     */
+    imageUrl: varchar("image_url", { length: 2048 }),
     categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
     active: boolean("active").notNull().default(true),
     createdAt: createdAt(),
@@ -94,6 +99,8 @@ export const products = pgTable(
     uniqueIndex("products_reference_upper_idx").on(sql`upper(${t.reference})`),
     index("products_category_id_idx").on(t.categoryId),
     check("products_price_positive", sql`${t.priceCents} > 0`),
+    // Só https: http seria bloqueado como "conteúdo misto" e outros esquemas (javascript:, data:) não são imagem.
+    check("products_image_url_https", sql`${t.imageUrl} is null or ${t.imageUrl} like 'https://%'`),
   ],
 );
 

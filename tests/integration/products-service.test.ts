@@ -66,9 +66,34 @@ describe("createProduct", () => {
     { ...valid, priceCents: -1 },
     { ...valid, priceCents: 10.5 },
     { reference: "X" },
+    { ...valid, imageUrl: "http://exemplo.com/a.jpg" },
+    { ...valid, imageUrl: "https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz" },
   ])("valida com Zod antes de gravar: %j", async (input) => {
     await expect(createProduct(input)).rejects.toBeInstanceOf(ZodError);
     expect((await listProducts()).total).toBe(0);
+  });
+
+  describe("imagem", () => {
+    const FILE_ID = "1AbCdEfGhIjKlMnOpQrStUvWxYz012345";
+    const DIRECT = `https://lh3.googleusercontent.com/d/${FILE_ID}`;
+
+    it("sem imagem, o produto fica com imageUrl nulo", async () => {
+      expect((await createProduct(valid)).imageUrl).toBeNull();
+    });
+
+    it("grava o link de compartilhamento do Drive já convertido para o endereço direto da imagem", async () => {
+      const product = await createProduct({
+        ...valid,
+        imageUrl: `https://drive.google.com/file/d/${FILE_ID}/view?usp=sharing`,
+      });
+      expect(product.imageUrl).toBe(DIRECT);
+      expect((await getProduct(product.id))?.imageUrl).toBe(DIRECT);
+    });
+
+    it("aceita endereço https de outro site e trata texto vazio como 'sem imagem'", async () => {
+      expect((await createProduct({ ...valid, imageUrl: "https://exemplo.com/a.jpg" })).imageUrl).toBe("https://exemplo.com/a.jpg");
+      expect((await createProduct({ ...valid, reference: "outro", imageUrl: "  " })).imageUrl).toBeNull();
+    });
   });
 });
 
@@ -94,6 +119,32 @@ describe("updateProduct", () => {
       active: false,
     });
     expect(updated.updatedAt.getTime()).toBeGreaterThan(product.updatedAt.getTime());
+  });
+
+  it("troca e remove a imagem (campo vazio = sem imagem)", async () => {
+    const product = await insertProduct({
+      reference: "IMG",
+      imageUrl: "https://lh3.googleusercontent.com/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345",
+    });
+
+    const changed = await updateProduct(product.id, {
+      ...valid,
+      reference: "img",
+      imageUrl: "https://drive.google.com/open?id=2ZyXwVuTsRqPoNmLkJiHgFeDcBa987654",
+    });
+    expect(changed.imageUrl).toBe("https://lh3.googleusercontent.com/d/2ZyXwVuTsRqPoNmLkJiHgFeDcBa987654");
+
+    const cleared = await updateProduct(product.id, { ...valid, reference: "img", imageUrl: "" });
+    expect(cleared.imageUrl).toBeNull();
+  });
+
+  it("imagem inválida na edição não altera o produto", async () => {
+    const direct = "https://lh3.googleusercontent.com/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345";
+    const product = await insertProduct({ reference: "IMG", imageUrl: direct });
+    await expect(updateProduct(product.id, { ...valid, reference: "img", imageUrl: "http://x.com/a.jpg" })).rejects.toBeInstanceOf(
+      ZodError,
+    );
+    expect((await getProduct(product.id))?.imageUrl).toBe(direct);
   });
 
   it("permite salvar mantendo a própria referência", async () => {
@@ -181,6 +232,14 @@ describe("listProducts", () => {
     expect(items.map((p) => p.reference)).toEqual(["AVU-01", "AVU-02", "CAM-01", "CAM-02", "SUC-01"]);
     expect(items.find((p) => p.reference === "CAM-01")?.categoryName).toBe("Roupas");
     expect(items.find((p) => p.reference === "AVU-01")?.categoryName).toBeNull();
+  });
+
+  it("devolve o endereço da imagem de cada produto (nulo quando não tem)", async () => {
+    const direct = "https://lh3.googleusercontent.com/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345";
+    await insertProduct({ reference: "ZZ-IMG", imageUrl: direct });
+    const { items } = await listProducts();
+    expect(items.find((p) => p.reference === "ZZ-IMG")?.imageUrl).toBe(direct);
+    expect(items.find((p) => p.reference === "CAM-01")?.imageUrl).toBeNull();
   });
 
   it("busca por trecho da referência ou da descrição, sem diferenciar maiúsculas", async () => {

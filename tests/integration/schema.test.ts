@@ -111,6 +111,34 @@ describe("products", () => {
     expect(await constraintOf(newProduct("P", price))).toBe("products_price_positive");
   });
 
+  it("imagem é opcional: nasce nula e aceita endereço https", async () => {
+    expect((await newProduct("SEM-IMG")).imageUrl).toBeNull();
+    const [product] = await db()
+      .insert(products)
+      .values({
+        reference: "COM-IMG",
+        description: "Produto com imagem",
+        priceCents: 100,
+        imageUrl: "https://lh3.googleusercontent.com/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345",
+      })
+      .returning();
+    expect(product.imageUrl).toBe("https://lh3.googleusercontent.com/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345");
+  });
+
+  it.each([
+    "http://exemplo.com/a.jpg",
+    "javascript:alert(1)",
+    "data:image/png;base64,AAAA",
+    "ftp://exemplo.com/a.jpg",
+    "//cdn.exemplo.com/a.jpg",
+    "drive.google.com/file/d/abc",
+  ])("rejeita imagem que não é https: %s (check do banco)", async (imageUrl) => {
+    const result = await constraintOf(
+      db().insert(products).values({ reference: "X", description: "Produto X", priceCents: 100, imageUrl }),
+    );
+    expect(result).toBe("products_image_url_https");
+  });
+
   it("ao excluir a categoria, o produto permanece sem categoria", async () => {
     const [category] = await db().insert(categories).values({ name: "Temporária" }).returning();
     const [product] = await db()

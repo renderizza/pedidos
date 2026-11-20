@@ -12,8 +12,8 @@ const P2 = "22222222-2222-4222-8222-222222222222";
 const GONE = "99999999-9999-4999-8999-999999999999";
 
 const catalog: OrderableProduct[] = [
-  { id: P1, reference: "CAM-01", description: "Camiseta azul", priceCents: 1990, categoryName: null },
-  { id: P2, reference: "SUC-01", description: "Suco de uva", priceCents: 735, categoryName: null },
+  { id: P1, reference: "CAM-01", description: "Camiseta azul", priceCents: 1990, imageUrl: null, categoryName: null },
+  { id: P2, reference: "SUC-01", description: "Suco de uva", priceCents: 735, imageUrl: null, categoryName: null },
 ];
 
 type FinalizeFn = React.ComponentProps<typeof GuestOrderBuilder>["finalize"];

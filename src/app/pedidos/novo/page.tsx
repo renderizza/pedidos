@@ -45,6 +45,7 @@ export default async function NewOrderPage() {
         reference: line.reference,
         description: line.description,
         priceCents: line.priceCents,
+        imageUrl: line.imageUrl,
         categoryName: line.categoryName,
       })),
   ];
