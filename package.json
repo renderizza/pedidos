@@ -2,6 +2,9 @@
   "name": "sistema-de-pedidos",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,6 +15,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx --env-file=.env scripts/seed.ts",
+    "db:create-admin": "tsx --env-file-if-exists=.env scripts/create-admin.ts",
     "db:seed:catalog": "tsx --env-file=.env scripts/seed-catalog.ts",
     "db:studio": "drizzle-kit studio",
     "test": "npm run test:unit && npm run test:integration && npm run test:e2e",

@@ -15,6 +15,8 @@ npm run db:seed:catalog     # (opcional) categorias, produtos de cosméticos/bel
 npm run dev                 # http://localhost:3000
 ```
 
+**Deploy:** Vercel + Supabase — veja [DEPLOY.md](./DEPLOY.md).
+
 ### Usuários de desenvolvimento (`npm run db:seed`)
 
 | Perfil    | E-mail                    | Senha            | Após o login |

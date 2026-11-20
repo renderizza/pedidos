@@ -25,6 +25,14 @@ const updatedAt = () =>
 export const userRole = pgEnum("user_role", USER_ROLES);
 export const orderStatus = pgEnum("order_status", ORDER_STATUSES);
 
+/*
+ * RLS (row level security) ligado em TODAS as tabelas, sem nenhuma política.
+ * No Supabase as tabelas do schema `public` ficam expostas pela Data API aos papéis `anon` e
+ * `authenticated`; com RLS e sem políticas esses papéis não leem nem gravam nada. O app conecta
+ * com o papel `postgres` (BYPASSRLS) e o dono da tabela também ignora o RLS, então nada muda para ele.
+ * Tabela nova: terminar com `.enableRLS()`.
+ */
+
 /**
  * Tabela chave/valor com metadados da aplicação (criada na Fase 1 para validar
  * o pipeline de migrações).
@@ -34,7 +42,7 @@ export const appMeta = pgTable("app_meta", {
   value: text("value").notNull(),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-});
+}).enableRLS();
 
 export const users = pgTable(
   "users",
@@ -49,7 +57,7 @@ export const users = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex("users_email_lower_idx").on(sql`lower(${t.email})`)],
-);
+).enableRLS();
 
 export const sessions = pgTable(
   "sessions",
@@ -64,7 +72,7 @@ export const sessions = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("sessions_user_id_idx").on(t.userId), index("sessions_expires_at_idx").on(t.expiresAt)],
-);
+).enableRLS();
 
 export const categories = pgTable(
   "categories",
@@ -75,7 +83,7 @@ export const categories = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex("categories_name_lower_idx").on(sql`lower(${t.name})`)],
-);
+).enableRLS();
 
 export const products = pgTable(
   "products",
@@ -102,7 +110,7 @@ export const products = pgTable(
     // Só https: http seria bloqueado como "conteúdo misto" e outros esquemas (javascript:, data:) não são imagem.
     check("products_image_url_https", sql`${t.imageUrl} is null or ${t.imageUrl} like 'https://%'`),
   ],
-);
+).enableRLS();
 
 export const orders = pgTable(
   "orders",
@@ -131,7 +139,7 @@ export const orders = pgTable(
     index("orders_user_id_created_at_idx").on(t.userId, t.createdAt),
     check("orders_total_non_negative", sql`${t.totalCents} >= 0`),
   ],
-);
+).enableRLS();
 
 export const orderItems = pgTable(
   "order_items",
@@ -159,7 +167,7 @@ export const orderItems = pgTable(
       sql`${t.lineTotalCents} = ${t.unitPriceCents} * ${t.quantity}`,
     ),
   ],
-);
+).enableRLS();
 
 /**
  * Rascunho do pedido em montagem na tabela interativa: no máximo UM por usuário.
@@ -172,7 +180,7 @@ export const orderDrafts = pgTable("order_drafts", {
     .references(() => users.id, { onDelete: "cascade" }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-});
+}).enableRLS();
 
 export const orderDraftItems = pgTable(
   "order_draft_items",
@@ -194,7 +202,7 @@ export const orderDraftItems = pgTable(
     index("order_draft_items_user_position_idx").on(t.userId, t.position),
     check("order_draft_items_quantity_range", sql`${t.quantity} between 1 and 9999`),
   ],
-);
+).enableRLS();
 
 export type AppMeta = typeof appMeta.$inferSelect;
 export type NewAppMeta = typeof appMeta.$inferInsert;

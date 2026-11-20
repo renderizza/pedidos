@@ -50,6 +50,13 @@
       "when": 1795135577700,
       "tag": "0006_product_image_url",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795195249429,
+      "tag": "0007_enable_rls",
+      "breakpoints": true
     }
   ]
 }
