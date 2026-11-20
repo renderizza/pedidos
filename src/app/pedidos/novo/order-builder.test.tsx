@@ -425,6 +425,59 @@ async function submit() {
   await advance(0);
 }
 
+/** Digita caractere a caractere, como o navegador: cada evento traz o valor anterior + o novo caractere. */
+function typePhone(text: string) {
+  for (const char of text) {
+    fireEvent.change(customerPhone(), { target: { value: customerPhone().value + char } });
+  }
+}
+
+describe("máscara do telefone do cliente", () => {
+  it("formata enquanto digita: (xx)xxxxx-xxxx", () => {
+    setup();
+    typePhone("1");
+    expect(customerPhone()).toHaveValue("(1");
+    typePhone("19");
+    expect(customerPhone()).toHaveValue("(11)9");
+    typePhone("88887777");
+    expect(customerPhone()).toHaveValue("(11)98888-7777");
+  });
+
+  it("não aceita letras nem mais de 11 dígitos", () => {
+    setup();
+    typePhone("ab11x98888-7777");
+    expect(customerPhone()).toHaveValue("(11)98888-7777");
+    typePhone("123");
+    expect(customerPhone()).toHaveValue("(11)98888-7777");
+  });
+
+  it("fixo (10 dígitos) usa (xx)xxxx-xxxx", () => {
+    setup();
+    typePhone("1133334444");
+    expect(customerPhone()).toHaveValue("(11)3333-4444");
+  });
+
+  it("apagar com Backspace encurta a cada toque e nunca fica preso na pontuação", () => {
+    setup();
+    typePhone("11988887777");
+    let value = customerPhone().value;
+    while (value !== "") {
+      // O Backspace remove o último caractere; a máscara então reaplica o formato.
+      fireEvent.change(customerPhone(), { target: { value: value.slice(0, -1) } });
+      const next = customerPhone().value;
+      expect(next.length).toBeLessThan(value.length);
+      value = next;
+    }
+    expect(customerPhone()).toHaveValue("");
+  });
+
+  it("colar um número com +55 descarta o código do país", () => {
+    setup();
+    fireEvent.change(customerPhone(), { target: { value: "+55 (11) 98888-7777" } });
+    expect(customerPhone()).toHaveValue("(11)98888-7777");
+  });
+});
+
 describe("finalização do pedido", () => {
   const withOrder = () => ({ initialRows: [{ productId: "p1", quantity: 3 }] });
 
@@ -451,7 +504,7 @@ describe("finalização do pedido", () => {
     expect(finalize).toHaveBeenCalledTimes(1);
     expect(finalize).toHaveBeenCalledWith({
       customerName: "João da Loja",
-      customerPhone: "(11) 98888-7777",
+      customerPhone: "(11)98888-7777", // o campo reaplica a máscara; o servidor guarda só os dígitos
       notes: "Entregar de manhã",
       expectedTotalCents: 5970, // 3 × R$ 19,90
     });

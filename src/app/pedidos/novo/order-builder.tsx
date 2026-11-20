@@ -8,6 +8,7 @@ import { WhatsAppSharePanel } from "@/components/orders/whatsapp-share-panel";
 import { formatCents } from "@/lib/money";
 import { calculateOrder, parseQuantity } from "@/lib/orders/calculation";
 import { searchCatalog } from "@/lib/orders/search";
+import { maskBrazilPhone } from "@/lib/phone-mask";
 import type { OrderableProduct } from "@/lib/products/service";
 import type { DraftSaveResult, FinalizeResult, GuestReceipt } from "./actions";
 
@@ -564,7 +565,9 @@ export function OrderBuilder({
                 aria-invalid={customerField("customerPhone") ? true : undefined}
                 aria-describedby={customerField("customerPhone") ? `${uid}-customer-phone-err` : undefined}
                 value={customer.phone}
-                onChange={(event) => setCustomer({ ...customer, phone: event.target.value })}
+                onChange={(event) =>
+                  setCustomer({ ...customer, phone: maskBrazilPhone(event.target.value, customer.phone) })
+                }
                 className={`mt-1 w-full ${inputClass}`}
               />
               {customerField("customerPhone") ? (
@@ -574,7 +577,7 @@ export function OrderBuilder({
                   </p>
                 ))
               ) : (
-                <p className="mt-1 text-xs text-slate-500">Com DDD. Ex.: (11) 98888-7777</p>
+                <p className="mt-1 text-xs text-slate-500">Com DDD. Ex.: (11)98888-7777</p>
               )}
             </div>
           </div>

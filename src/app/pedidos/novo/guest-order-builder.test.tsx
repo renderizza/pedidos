@@ -89,7 +89,7 @@ describe("GuestOrderBuilder — pedido de quem não tem cadastro", () => {
     expect(finalize).toHaveBeenCalledTimes(1);
     expect(finalize).toHaveBeenCalledWith({
       customerName: "Maria",
-      customerPhone: "(11) 98888-7777",
+      customerPhone: "(11)98888-7777", // o campo reaplica a máscara; o servidor guarda só os dígitos
       notes: "",
       expectedTotalCents: 9950, // 5 × R$ 19,90
       items: [{ productId: P1, quantity: 5 }],

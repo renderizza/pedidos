@@ -141,6 +141,28 @@ test.describe("finalizar pedido e gerar a mensagem do WhatsApp", () => {
     expect(message).toContain("2 x R$ 25,00 = R$ 50,00");
   });
 
+  test("telefone do cliente: a máscara (xx)xxxxx-xxxx acompanha a digitação e o pedido sai com o número certo", async ({ page }) => {
+    const id = uniqueId();
+    const prefix = `MSK${id}`;
+    await createOrderCatalog(prefix);
+    await login(page, await createE2eUser("CLIENTE", id), "/login?next=%2Fpedidos%2Fnovo");
+
+    const phone = page.getByLabel("Telefone do cliente (opcional)");
+    await phone.pressSequentially("119");
+    await expect(phone).toHaveValue("(11)9");
+    await phone.pressSequentially("88887777");
+    await expect(phone).toHaveValue("(11)98888-7777");
+
+    await addProduct(page, `${prefix}-CAM`, 2);
+    await page.getByLabel("Nome do cliente").fill("Marta");
+    await finalizeButton(page).click();
+
+    await expect(page).toHaveURL(/\/pedidos\/[0-9a-f-]{36}\?novo=1$/);
+    await expect(page.getByTestId("order-phone")).toHaveText("(11) 98888-7777");
+    const customerUrl = new URL((await page.getByTestId("whatsapp-customer-link").getAttribute("href"))!);
+    expect(customerUrl.pathname).toBe("/5511988887777");
+  });
+
   test("validações: nome obrigatório e telefone inválido aparecem sem perder o pedido; depois grava", async ({ page }) => {
     const id = uniqueId();
     const prefix = `VAL${id}`;
