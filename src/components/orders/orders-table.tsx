@@ -3,10 +3,23 @@ import { formatCents } from "@/lib/money";
 import type { OrderSummary } from "@/lib/orders/history";
 import { requesterLabel } from "@/lib/orders/requester";
 import { formatOrderDate } from "@/lib/whatsapp";
-import { OrderStatusBadge } from "./status-badge";
+import { OrderStatusControl, type UpdateStatus } from "./order-status-control";
 
-/** Lista de pedidos. `showRequester` (ADMIN) acrescenta quem lançou o pedido. */
-export function OrdersTable({ orders, showRequester }: { orders: OrderSummary[]; showRequester: boolean }) {
+/**
+ * Lista de pedidos. `showRequester` (ADMIN) acrescenta quem lançou o pedido.
+ * `updateStatus` liga a coluna "Situação": um seletor por linha, que já mostra a situação atual (não há selo
+ * colorido na lista). Sem ele (ex.: CLIENTE) a coluna não existe; a situação continua na página do pedido.
+ * A permissão de verdade é conferida no servidor, a cada alteração.
+ */
+export function OrdersTable({
+  orders,
+  showRequester,
+  updateStatus,
+}: {
+  orders: OrderSummary[];
+  showRequester: boolean;
+  updateStatus?: UpdateStatus;
+}) {
   return (
     <table role="table" aria-label="Pedidos" className="stack-table w-full overflow-hidden rounded-lg border border-slate-200 bg-white text-left text-sm">
       <thead role="rowgroup" className="bg-slate-100 text-slate-600">
@@ -17,7 +30,7 @@ export function OrdersTable({ orders, showRequester }: { orders: OrderSummary[];
           {showRequester ? <th role="columnheader" scope="col" className="px-4 py-2 font-medium">Lançado por</th> : null}
           <th role="columnheader" scope="col" className="px-4 py-2 font-medium">Itens</th>
           <th role="columnheader" scope="col" className="px-4 py-2 text-right font-medium">Total</th>
-          <th role="columnheader" scope="col" className="px-4 py-2 font-medium">Situação</th>
+          {updateStatus ? <th role="columnheader" scope="col" className="px-4 py-2 font-medium">Situação</th> : null}
         </tr>
       </thead>
       <tbody role="rowgroup">
@@ -35,9 +48,11 @@ export function OrdersTable({ orders, showRequester }: { orders: OrderSummary[];
               {order.lineCount} produto(s) · {order.unitCount} un.
             </td>
             <td role="cell" data-label="Total" className="px-4 py-2 text-right tabular-nums">{formatCents(order.totalCents)}</td>
-            <td role="cell" data-label="Situação" className="px-4 py-2">
-              <OrderStatusBadge status={order.status} />
-            </td>
+            {updateStatus ? (
+              <td role="cell" data-label="Situação" className="px-4 py-2">
+                <OrderStatusControl orderId={order.id} orderNumber={order.orderNumber} status={order.status} action={updateStatus} />
+              </td>
+            ) : null}
           </tr>
         ))}
       </tbody>

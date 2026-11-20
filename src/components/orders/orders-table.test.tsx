@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { OrderSummary } from "@/lib/orders/history";
+import type { OrderStatus } from "@/lib/orders/status";
 import { OrdersTable } from "./orders-table";
 
 const order = (overrides: Partial<OrderSummary> = {}): OrderSummary => ({
@@ -17,14 +18,14 @@ const order = (overrides: Partial<OrderSummary> = {}): OrderSummary => ({
 });
 
 describe("OrdersTable", () => {
-  it("mostra número (link para o detalhe), data, cliente, itens, total e situação", () => {
+  it("mostra número (link para o detalhe), data, cliente, itens e total — sem selo colorido de situação", () => {
     render(<OrdersTable orders={[order()]} showRequester={false} />);
     const row = screen.getByRole("row", { name: /João da Loja/ });
     expect(within(row).getByRole("link", { name: "#42" })).toHaveAttribute("href", "/pedidos/11111111-1111-4111-8111-111111111111");
     expect(row).toHaveTextContent("18/11/2026 14:35");
     expect(row).toHaveTextContent("2 produto(s) · 15 un.");
     expect(row.textContent?.replace(/\s/g, " ")).toContain("R$ 147,90");
-    expect(within(row).getByTestId("order-status")).toHaveTextContent("Pendente");
+    expect(within(row).queryByTestId("order-status")).not.toBeInTheDocument();
   });
 
   it("a coluna 'Lançado por' só existe para quem vê todos os pedidos (ADMIN)", () => {
@@ -46,6 +47,35 @@ describe("OrdersTable", () => {
   it("pedido de visitante mostra 'Cliente sem cadastro' em 'Lançado por'", () => {
     render(<OrdersTable orders={[order({ requesterName: null })]} showRequester />);
     expect(screen.getByText("Cliente sem cadastro")).toBeInTheDocument();
+  });
+
+  describe("alterar a situação", () => {
+    const updateStatus = async (_id: string, status: OrderStatus): Promise<{ ok: true; status: OrderStatus }> => ({ ok: true, status });
+
+    it("sem a ação (ex.: CLIENTE) não há coluna 'Situação' nem seletor, e a lista não mostra selo", () => {
+      render(<OrdersTable orders={[order()]} showRequester={false} />);
+      expect(screen.queryByRole("columnheader", { name: "Situação" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("order-status")).not.toBeInTheDocument();
+      expect(screen.getByRole("row", { name: /João da Loja/ })).not.toHaveTextContent("Pendente");
+    });
+
+    it("com a ação, a coluna 'Situação' tem um seletor por linha, já na situação atual (sem selo colorido)", () => {
+      render(
+        <OrdersTable
+          orders={[order({ id: "a", orderNumber: 7, status: "CONFIRMADO" }), order({ id: "b", orderNumber: 8, status: "CANCELADO" })]}
+          showRequester={false}
+          updateStatus={updateStatus}
+        />,
+      );
+      const seven = screen.getByRole("row", { name: /#7/ });
+      const eight = screen.getByRole("row", { name: /#8/ });
+      expect(screen.getByRole("columnheader", { name: "Situação" })).toBeInTheDocument();
+      expect(within(seven).getByRole("combobox", { name: "Situação do pedido #7" })).toHaveValue("CONFIRMADO");
+      expect(within(eight).getByRole("combobox", { name: "Situação do pedido #8" })).toHaveValue("CANCELADO");
+      expect(screen.getAllByRole("combobox")).toHaveLength(2);
+      expect(screen.queryByTestId("order-status")).not.toBeInTheDocument();
+    });
   });
 
   it("uma linha por pedido, na ordem recebida", () => {

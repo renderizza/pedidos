@@ -117,7 +117,6 @@ test.describe("finalizar pedido e gerar a mensagem do WhatsApp", () => {
     await expect(row).toContainText(`#${orderNumber}`);
     await expect(row).toContainText("R$ 147,90");
     await expect(row).toContainText("2 produto(s) · 15 un.");
-    await expect(row.getByTestId("order-status")).toHaveText("Pendente");
     await row.getByRole("link", { name: `#${orderNumber}` }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(`Pedido #${orderNumber}`);
   });

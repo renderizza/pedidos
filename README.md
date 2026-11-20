@@ -47,7 +47,24 @@ npm run dev                 # http://localhost:3000
 - O histórico **não muda** se o catálogo mudar depois (preço, descrição, produto excluído).
 - **Pedido de outra pessoa responde 404** (e não 403), para não revelar que ele existe. A regra de posse é a mesma (`canAccessOrder`) na lista e no detalhe.
 - **WhatsApp:** `src/lib/whatsapp.ts` gera a mensagem (`*PEDIDO #N*`, data no fuso de São Paulo, cliente, itens `qtd x unitário = total`, total, observações). O link `wa.me` vai para o número definido em `WHATSAPP_ORDERS_NUMBER` (opcional; sem ele o WhatsApp abre para escolher o contato). Se o cliente tem telefone, há também o atalho "Enviar ao cliente".
-- Fora do escopo desta fase: alterar a situação do pedido (pendente → confirmado/cancelado). Todo pedido nasce `PENDENTE`.
+- Todo pedido nasce `PENDENTE`. A situação é alterada na própria lista (veja "Situação do pedido").
+
+## Situação do pedido
+
+Em `/pedidos`, quem pode gerenciar o pedido tem na coluna "Situação" um **seletor** (Pendente, Confirmado, Cancelado) que já mostra a situação atual; a lista **não** usa o selo colorido. Quem só acompanha (CLIENTE) não tem a coluna na lista e vê a situação na página do pedido (`/pedidos/[id]`), que mantém o selo. A mudança vale na hora: o seletor mostra a escolha antes da resposta do servidor e volta sozinho à situação real, com o motivo, se o servidor recusar. Enquanto grava, o seletor fica bloqueado (nunca há duas alterações do mesmo pedido em paralelo).
+
+| Perfil | Pode alterar |
+|---|---|
+| ADMIN | qualquer pedido (inclusive de visitante sem cadastro) |
+| CONSULTOR | só os **seus** pedidos (os de outras pessoas nem aparecem na lista) |
+| CLIENTE | nenhum: sem seletor; vê a situação só na página do pedido |
+
+- **Regra no servidor, não só na tela:** `updateOrderStatusAction` (`src/app/pedidos/actions.ts`) exige a permissão `order:manage:own` antes de qualquer coisa (CLIENTE recebe 403, visitante vai ao login) e `updateOrderStatus` (`src/lib/orders/update-status.ts`) confere a posse com `canManageOrder`. Pedido de outra pessoa responde "Pedido não encontrado" (e não "sem permissão"), como no detalhe. A situação é validada com Zod; qualquer valor fora das três é recusado.
+- **Transições livres:** qualquer mudança entre as três é permitida, para corrigir um engano (reabrir um cancelado, desfazer uma confirmação). Escolher a situação que o pedido já tem não grava nada.
+- **Cancelar pede confirmação**, pois tira o pedido do faturamento. Reabrir ou confirmar não perguntam nada.
+- **Faturamento:** a situação conta no painel (veja "Faturamento no painel"). Ao alterar, a lista, o detalhe do pedido e o `/admin` são revalidados.
+- Com um filtro de situação ativo na lista, o pedido sai dela assim que muda de situação.
+- O histórico das alterações (quem mudou e quando) **não** é guardado: só a situação atual e o `updated_at` do pedido.
 
 ## Pedido do consultor (interno)
 
@@ -108,7 +125,7 @@ O formulário de produto (`/admin/produtos/novo` e `/editar`) tem o campo **URL 
 
 Em `/admin` (só ADMIN), abaixo das contagens, a seção **Faturamento**:
 
-- **Regra:** faturamento = soma dos pedidos **pendentes + confirmados**; os **cancelados ficam de fora** (a tabela "Pedidos por situação" mostra os três). Hoje todo pedido nasce pendente e a tela não altera a situação, então contar só os confirmados deixaria o painel zerado.
+- **Regra:** faturamento = soma dos pedidos **pendentes + confirmados**; os **cancelados ficam de fora** (a tabela "Pedidos por situação" mostra os três). Todo pedido nasce pendente e a confirmação é um passo manual (veja "Situação do pedido"), então contar só os confirmados deixaria o painel vazio até alguém confirmar; por isso o pendente também conta. Cancelar um pedido o tira da soma e reabri-lo o devolve.
 - **Fuso:** dias e meses seguem o horário de **Brasília**, calculados no SQL (`src/lib/orders/revenue.ts`), independentes do fuso do servidor: um pedido das 23h30 de Brasília conta no dia em que foi feito.
 - **Números:** faturamento do **mês** em destaque, com a variação sobre o **mesmo trecho do mês anterior** (1º ao mesmo dia, nunca o mês inteiro); cartões de hoje, últimos 7 dias, total geral e ticket médio.
 - **Gráfico diário** (30 dias): colunas com rótulo no pico; o tooltip aparece ao passar o mouse **e** pelo teclado (setas, Home, End), e há a visão **"Ver como tabela"** com todos os valores.

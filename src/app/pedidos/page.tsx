@@ -7,6 +7,7 @@ import { hasPermission } from "@/lib/auth/rbac";
 import { buildOrderListHref, parseOrderListParams } from "@/lib/orders/list-params";
 import { listOrdersFor } from "@/lib/orders/history";
 import { ORDER_STATUS_LABEL, ORDER_STATUSES } from "@/lib/orders/status";
+import { updateOrderStatusAction } from "./actions";
 
 export const metadata: Metadata = { title: "Pedidos — Sistema de Pedidos" };
 
@@ -20,6 +21,9 @@ export default async function OrdersPage({
   // A visibilidade é decidida DENTRO de listOrdersFor: ADMIN vê todos; os demais, só os próprios.
   const result = await listOrdersFor(user, { search: query.search, status: query.status, page: query.page });
   const seesAll = hasPermission(user.role, "order:read:all");
+  // Quem gerencia pedidos (ADMIN: todos; CONSULTOR: os seus) altera a situação aqui. A lista só traz pedidos que o
+  // usuário enxerga, então ele pode alterar todos os que vê; mesmo assim a Server Action confere a posse a cada chamada.
+  const canManage = hasPermission(user.role, "order:manage:own") || hasPermission(user.role, "order:manage:all");
   const filtered = Boolean(query.search || query.status);
 
   return (
@@ -69,7 +73,7 @@ export default async function OrdersPage({
             {filtered ? "Nenhum pedido encontrado para esses filtros." : "Nenhum pedido registrado ainda."}
           </p>
         ) : (
-          <OrdersTable orders={result.items} showRequester={seesAll} />
+          <OrdersTable orders={result.items} showRequester={seesAll} updateStatus={canManage ? updateOrderStatusAction : undefined} />
         )}
         <p className="mt-2 text-xs text-slate-500" data-testid="result-count">
           {result.total} pedido(s)
